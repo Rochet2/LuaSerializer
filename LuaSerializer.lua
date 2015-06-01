@@ -18,41 +18,41 @@
 
 --[[
 Usage:
-local serialized = SLS.serialize(55, "test", {1,2, y = 66}, nil, true, SLS.ToFunction('print("Hello")'))
-print(SLS.deserialize(serialized))
+local serialized = LuaSerializer.serialize(55, "test", {1,2, y = 66}, nil, true, LuaSerializer.ToFunction('print("Hello")'))
+print(LuaSerializer.deserialize(serialized))
 ]]
 
-assert(_VERSION == 'Lua 5.1' or _VERSION == 'Lua 5.2', "SLS serializer is coded for lua 5.1 and 5.2")
+assert(_VERSION == 'Lua 5.1' or _VERSION == 'Lua 5.2', "LuaSerializer serializer is coded for lua 5.1 and 5.2")
 
--- SLS main table
-local SLS = {}
+-- LuaSerializer main table
+local LuaSerializer = {}
 
 -- Enables deserializing functions (uses loadstring or load)
-local SLS_ENABLE_FUNCTIONS      = true
+local LuaSerializer_ENABLE_FUNCTIONS      = true
 
 -- Enables LZW compression for the serialized data
-local SLS_ENABLE_COMPRESSION    = true -- default true
+local LuaSerializer_ENABLE_COMPRESSION    = true -- default true
 
--- Client must have same version (basically same SLS file)
-SLS.Version = 0.75
+-- Client must have same version (basically same LuaSerializer file)
+LuaSerializer.Version = 0.75
 -- ID characters for the serialization
-local SLS_True            = 'T'
-local SLS_False           = 'F'
-local SLS_Nil             = 'N'
-local SLS_Table           = 't'
-local SLS_Function        = 'f'
-local SLS_String          = 's'
-local SLS_Number          = 'n'
-local SLS_pInf            = 'i'
-local SLS_nInf            = 'I'
-local SLS_nNan            = 'a'
-local SLS_pNan            = 'A'
-local SLS_Compressed      = 'C'
-local SLS_Uncompressed    = 'U'
-local SLS_CodeEscaper     = '~'
-local SLS_CodeChar        = '&' -- some really rare character in serialized data
-local SLS_TableSep        = SLS_CodeChar..'D'
-local SLS_EndData         = SLS_CodeChar..'E'
+local LuaSerializer_True            = 'T'
+local LuaSerializer_False           = 'F'
+local LuaSerializer_Nil             = 'N'
+local LuaSerializer_Table           = 't'
+local LuaSerializer_Function        = 'f'
+local LuaSerializer_String          = 's'
+local LuaSerializer_Number          = 'n'
+local LuaSerializer_pInf            = 'i'
+local LuaSerializer_nInf            = 'I'
+local LuaSerializer_nNan            = 'a'
+local LuaSerializer_pNan            = 'A'
+local LuaSerializer_Compressed      = 'C'
+local LuaSerializer_Uncompressed    = 'U'
+local LuaSerializer_CodeEscaper     = '~'
+local LuaSerializer_CodeChar        = '&' -- some really rare character in serialized data
+local LuaSerializer_TableSep        = LuaSerializer_CodeChar..'D'
+local LuaSerializer_EndData         = LuaSerializer_CodeChar..'E'
 
 local assert = assert
 local type = type
@@ -78,36 +78,36 @@ local loadstring = loadstring or load
 local maxn = table.maxn or function(t) local n = 0 for k, _ in pairs(t) do if type(k) == 'number' and k > n then n = k end end return n end
 
 -- This is not required for serializing, but it will help you keep your data smaller
-local compressor = SLS_ENABLE_COMPRESSION and require("TLibCompress")
+local compressor = LuaSerializer_ENABLE_COMPRESSION and require("TLibCompress")
 
-local SLS_ToMsgVal
-local SLS_ToRealVal
+local LuaSerializer_ToMsgVal
+local LuaSerializer_ToRealVal
 
 -- Errors with msg at given level if condition is false
 -- level works like on lua error function
-local function SLS_assert(cond, msg, level)
+local function LuaSerializer_assert(cond, msg, level)
     if not cond then
-        error("SLS: "..(msg or "SLS assertion failed"), (level or 1)+1)
+        error("LuaSerializer: "..(msg or "LuaSerializer assertion failed"), (level or 1)+1)
     end
 end
 
 -- Functions for handling converting table to string and from string
--- local s = SLS_Table_tostring(t), local t = SLS_Table_fromstring(s)
+-- local s = LuaSerializer_Table_tostring(t), local t = LuaSerializer_Table_fromstring(s)
 -- Does not support circular table relation which will cause stack overflow
-local function SLS_Table_tostring( tbl )
-    SLS_assert(type(tbl) == "table", "#1 table expected", 2)
+local function LuaSerializer_Table_tostring( tbl )
+    LuaSerializer_assert(type(tbl) == "table", "#1 table expected", 2)
     local result = {}
     for k, v in pairs( tbl ) do
-        tinsert( result, SLS_ToMsgVal( k ) )
-        tinsert( result, SLS_ToMsgVal( v ) )
+        tinsert( result, LuaSerializer_ToMsgVal( k ) )
+        tinsert( result, LuaSerializer_ToMsgVal( v ) )
     end
-    return tconcat( result, SLS_TableSep )..SLS_TableSep
+    return tconcat( result, LuaSerializer_TableSep )..LuaSerializer_TableSep
 end
-local function SLS_Table_fromstring( str )
-    SLS_assert(type(str) == "string", "#1 string expected", 2)
+local function LuaSerializer_Table_fromstring( str )
+    LuaSerializer_assert(type(str) == "string", "#1 string expected", 2)
     local res = {}
-    for k, v in gmatch(str, "(.-)"..SLS_TableSep.."(.-)"..SLS_TableSep) do
-        local _k, _v = SLS_ToRealVal(k), SLS_ToRealVal(v)
+    for k, v in gmatch(str, "(.-)"..LuaSerializer_TableSep.."(.-)"..LuaSerializer_TableSep) do
+        local _k, _v = LuaSerializer_ToRealVal(k), LuaSerializer_ToRealVal(v)
         if _k ~= nil then
             res[_k] = _v
         end
@@ -115,197 +115,197 @@ local function SLS_Table_fromstring( str )
     return res
 end
 
--- Returns true if var is an SLS function table object
-local function SLS_IsFunction(var)
+-- Returns true if var is an LuaSerializer function table object
+local function LuaSerializer_IsFunction(var)
     if type(var) ~= "table" then
         return false
     end
-    if type(var.F) ~= "string" or not var.SLSF then
+    if type(var.F) ~= "string" or not var.LuaSerializerF then
         return false
     end
     return true
 end
 
 -- Escapes special characters
-local function SLS_Encode(str)
-    SLS_assert(type(str) == "string", "#1 string expected", 2)
-    return (gsub(str, SLS_CodeChar, SLS_CodeChar..SLS_CodeEscaper))
+local function LuaSerializer_Encode(str)
+    LuaSerializer_assert(type(str) == "string", "#1 string expected", 2)
+    return (gsub(str, LuaSerializer_CodeChar, LuaSerializer_CodeChar..LuaSerializer_CodeEscaper))
 end
 -- Unescapes special characters
-local function SLS_Decode(str)
-    SLS_assert(type(str) == "string", "#1 string expected", 2)
-    return (gsub(str, SLS_CodeChar..SLS_CodeEscaper, SLS_CodeChar))
+local function LuaSerializer_Decode(str)
+    LuaSerializer_assert(type(str) == "string", "#1 string expected", 2)
+    return (gsub(str, LuaSerializer_CodeChar..LuaSerializer_CodeEscaper, LuaSerializer_CodeChar))
 end
 
 
 -- Converts table to parameter
-local function SLS_ToTable(tbl)
-    SLS_assert(type(tbl) == "table", "#1 table expected", 2)
-    return SLS_Table..SLS_Table_tostring(tbl)
+local function LuaSerializer_ToTable(tbl)
+    LuaSerializer_assert(type(tbl) == "table", "#1 table expected", 2)
+    return LuaSerializer_Table..LuaSerializer_Table_tostring(tbl)
 end
 -- Returns string parameter
-local function SLS_ToString(val)
-    SLS_assert(type(val) == "string", "#1 string expected", 2)
-    return SLS_String..val
+local function LuaSerializer_ToString(val)
+    LuaSerializer_assert(type(val) == "string", "#1 string expected", 2)
+    return LuaSerializer_String..val
 end
 -- Returns number parameter
-local function SLS_ToNumber(val)
+local function LuaSerializer_ToNumber(val)
     val = tonumber(val)
-    SLS_assert(val, "#1 number expected", 2)
+    LuaSerializer_assert(val, "#1 number expected", 2)
 
     if val == math.huge then      -- test for +inf
-        return SLS_pInf
+        return LuaSerializer_pInf
     elseif val == -math.huge then -- test for -inf
-        return SLS_nInf
+        return LuaSerializer_nInf
     elseif val ~= val then        -- test for nan and -nan
         if find(tostring(val), '-', 1, true) == 1 then
-            return SLS_nNan
+            return LuaSerializer_nNan
         end
-        return SLS_pNan
+        return LuaSerializer_pNan
     end
-    return SLS_Number..tostring(val)
+    return LuaSerializer_Number..tostring(val)
 end
 -- Converts boolean to parameter
-local function SLS_ToBoolean(bool)
+local function LuaSerializer_ToBoolean(bool)
     if bool then
-        return SLS_True
+        return LuaSerializer_True
     else
-        return SLS_False
+        return LuaSerializer_False
     end
 end
 -- Returns nil parameter
-local function SLS_ToNil()
-    return SLS_Nil
+local function LuaSerializer_ToNil()
+    return LuaSerializer_Nil
 end
 
 -- Converts a value to string using special characters to represent the value if needed
-function SLS_ToMsgVal(val)
+function LuaSerializer_ToMsgVal(val)
     local ret
     local Type = type(val)
     if Type == "string" then
-        ret = SLS_ToString(val)
+        ret = LuaSerializer_ToString(val)
     elseif Type == "number" then
-        ret = SLS_ToNumber(val)
+        ret = LuaSerializer_ToNumber(val)
     elseif Type == "boolean" then
-        ret = SLS_ToBoolean(val)
+        ret = LuaSerializer_ToBoolean(val)
     elseif Type == "nil" then
-        ret = SLS_ToNil()
+        ret = LuaSerializer_ToNil()
     elseif Type == "function" then
-        error("#1 Cant pass function, use SLS_ToFunction(FuncAsString) to pass a function parameter", 2)
+        error("#1 Cant pass function, use LuaSerializer_ToFunction(FuncAsString) to pass a function parameter", 2)
         return
     elseif Type == "table" then
-        if SLS_IsFunction(val) then
-            if not SLS_ENABLE_FUNCTIONS then
+        if LuaSerializer_IsFunction(val) then
+            if not LuaSerializer_ENABLE_FUNCTIONS then
                 error("functions are not enabled to be serializable")
                 return
             else
-                ret = SLS_Function..SLS_Table_tostring(val)
+                ret = LuaSerializer_Function..LuaSerializer_Table_tostring(val)
             end
         else
-            ret = SLS_ToTable(val)
+            ret = LuaSerializer_ToTable(val)
         end
     end
     if not ret then
         error("#1 Invalid value type ".. Type)
     end
-    return SLS_Encode(ret)
+    return LuaSerializer_Encode(ret)
 end
 
 -- Converts a string value from a message to the actual value it represents
-function SLS_ToRealVal(val)
-    SLS_assert(type(val) == "string", "#1 string expected", 2)
+function LuaSerializer_ToRealVal(val)
+    LuaSerializer_assert(type(val) == "string", "#1 string expected", 2)
 
-    local Type, data = match(SLS_Decode(val), "(.)(.*)")
+    local Type, data = match(LuaSerializer_Decode(val), "(.)(.*)")
     if not Type or not data then
         return nil
-    elseif Type == SLS_Nil then
+    elseif Type == LuaSerializer_Nil then
         return nil
-    elseif Type == SLS_True then
+    elseif Type == LuaSerializer_True then
         return true
-    elseif Type == SLS_False then
+    elseif Type == LuaSerializer_False then
         return false
-    elseif Type == SLS_String then
+    elseif Type == LuaSerializer_String then
         return data
-    elseif Type == SLS_Number then
+    elseif Type == LuaSerializer_Number then
         return tonumber(data)
-    elseif Type == SLS_pInf then
+    elseif Type == LuaSerializer_pInf then
         return math.huge
-    elseif Type == SLS_nInf then
+    elseif Type == LuaSerializer_nInf then
         return -math.huge
-    elseif Type == SLS_pNan then
+    elseif Type == LuaSerializer_pNan then
         return -(0/0)
-    elseif Type == SLS_nNan then
+    elseif Type == LuaSerializer_nNan then
         return 0/0
-    elseif Type == SLS_Function then
-        if not SLS_ENABLE_FUNCTIONS then
+    elseif Type == LuaSerializer_Function then
+        if not LuaSerializer_ENABLE_FUNCTIONS then
             error("functions are not enabled to be serializable")
             return nil
         end
-        local tbl = SLS_Table_fromstring(data)
-        if not SLS_IsFunction(tbl) then
+        local tbl = LuaSerializer_Table_fromstring(data)
+        if not LuaSerializer_IsFunction(tbl) then
             return nil
         end
         local func, err = loadstring(tbl.F)
-        SLS_assert(func, err, 2)
+        LuaSerializer_assert(func, err, 2)
         if tbl.R then
             -- RetRealFunc was true
             func = func()
         end
         return func
-    elseif Type == SLS_Table then
-        return SLS_Table_fromstring(data)
+    elseif Type == LuaSerializer_Table then
+        return LuaSerializer_Table_fromstring(data)
     end
 
     return nil -- val
 end
 
 -- Allow using a string that contains the function contents:
--- Converts a string to an SLS function parameter
+-- Converts a string to an LuaSerializer function parameter
 -- Note that all parameters passed to function will be accessible with ...
 -- If RetRealFunc is true then when the string is executed it returns a function to actually use as function
-function SLS.ToFunction(FuncAsString, RetRealFunc)
-    SLS_assert(type(FuncAsString) == "string", "#1 string expected", 2)
-    return {F = FuncAsString, R = RetRealFunc, SLSF = true}
+function LuaSerializer.ToFunction(FuncAsString, RetRealFunc)
+    LuaSerializer_assert(type(FuncAsString) == "string", "#1 string expected", 2)
+    return {F = FuncAsString, R = RetRealFunc, LuaSerializerF = true}
 end
 
--- Takes in a string of serialized data and returns the values in it
-function SLS.serialize(...)
+-- Takes in values and returns a string with them serialized
+function LuaSerializer.serialize(...)
     -- convert values into string form
     local n = select('#', ...)
     local serializeddata = {...}
     for i = 1, n do
-        serializeddata[i] = SLS_ToMsgVal(serializeddata[i])
+        serializeddata[i] = LuaSerializer_ToMsgVal(serializeddata[i])
     end
     --
-    serializeddata = tconcat(serializeddata, SLS_EndData)..SLS_EndData
-    if SLS_ENABLE_COMPRESSION then
-        serializeddata = SLS_Compressed..assert(compressor.CompressLZW(serializeddata))
+    serializeddata = tconcat(serializeddata, LuaSerializer_EndData)..LuaSerializer_EndData
+    if LuaSerializer_ENABLE_COMPRESSION then
+        serializeddata = LuaSerializer_Compressed..assert(compressor.CompressLZW(serializeddata))
     else
-        serializeddata = SLS_Uncompressed..serializeddata
+        serializeddata = LuaSerializer_Uncompressed..serializeddata
     end
     return serializeddata
 end
 
 -- Takes in a string of serialized data and returns the values in it
-function SLS.deserialize(serializeddata)
-    SLS_assert(type(serializeddata) == 'string', "#1 string expected", 2)
+function LuaSerializer.deserialize(serializeddata)
+    LuaSerializer_assert(type(serializeddata) == 'string', "#1 string expected", 2)
 
     -- check if data is compressed and uncompress if needed
     local compression, serializeddata = sub(serializeddata, 1, 1), sub(serializeddata, 2)
-    if compression == SLS_Compressed then
+    if compression == LuaSerializer_Compressed then
         serializeddata = assert(compressor.DecompressLZW(serializeddata))
     end
 
     -- parse all data and convert it to real values
     local res = {}
     local i = 1
-    for data in gmatch(serializeddata, "(.-)"..SLS_EndData) do
+    for data in gmatch(serializeddata, "(.-)"..LuaSerializer_EndData) do
         -- tinsert is not used here since it ignores nil values
-        res[i] = SLS_ToRealVal(data)
+        res[i] = LuaSerializer_ToRealVal(data)
         i = i+1
     end
 
     return unpack(res, 1, i-1)
 end
 
-return SLS
+return LuaSerializer
