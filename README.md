@@ -27,12 +27,12 @@ local LuaSerializer = require("LuaSerializer")
 -- serializer version
 print(LuaSerializer.Version)
 -- takes in a string of serialized data and returns the values in it
--- SLS.serialize(...)
+-- LuaSerializer.serialize(...)
 -- takes in values and returns a string with them serialized
--- SLS.deserialize(serializeddata)
+-- LuaSerializer.deserialize(serializeddata)
 
-local serialized = SLS.serialize(55, "test", {1,2, y = 66}, nil, true, SLS.ToFunction('print("Hello")'))
-print(SLS.deserialize(serialized))
+local serialized = LuaSerializer.serialize(55, "test", {1,2, y = 66}, nil, true, LuaSerializer.ToFunction('print("Hello")'))
+print(LuaSerializer.deserialize(serialized))
 -- prints:
 -- 55      test    table: 491A9920 nil     true    function: 4A3893C0
 ```
