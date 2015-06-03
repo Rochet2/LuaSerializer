@@ -6,7 +6,7 @@ Backlink: https://github.com/Rochet2/LuaSerializer
 - Tables with cycles can not be serialized.
 - Metatables are not serialized.
 - Userdata can not be serialized
-- All serialized functions must be in string from and converted to LuaSerializer form using LuaSerializer.ToFunction due to differences in lua 5.1 and 5.2 bytecode (this was used across them). You may also try to use Lua's string.dump function and serialize the result string.
+- Functions can not be serialized, but you can try serialize string.dump or the function contents as string
 
 #Serializing
 LuaSerializer serializes data into a string and is able to then deserialize the data without using loadstring (safely).  
@@ -17,24 +17,42 @@ LuaSerializer is capable of serializing:
 - bool
 - string
 - number including nan and inf
-- function (see limitations)
 - tables with no unserializable data and no cycles
 
 #API
 ```lua
-local LuaSerializer = require("LuaSerializer")
+local LuaSerializer = LuaSerializer or require("LuaSerializer")
 
--- serializer version
-print(LuaSerializer.Version)
--- takes in a string of serialized data and returns the values in it
+-- Some lua compatibility between 5.1 and 5.2
+local unpack = unpack or table.unpack
+
+-- Takes in values and returns a string with them serialized
+-- Uses LZW compression, use LuaSerializer.serialize_nocompress if you dont want this
 -- LuaSerializer.serialize(...)
--- takes in values and returns a string with them serialized
--- LuaSerializer.deserialize(serializeddata)
 
-local serialized = LuaSerializer.serialize(55, "test", {1,2, y = 66}, nil, true, LuaSerializer.ToFunction('print("Hello")'))
-print(LuaSerializer.deserialize(serialized))
+-- Takes in a string of serialized data and returns a table with the values in it and the amount of values
+-- The data must have been serialized with LuaSerializer.serialize_nocompress
+-- LuaSerializer.unserialize(serializeddata)
+
+local serialized = LuaSerializer.serialize(55, "test", {1,2, y = 66}, nil, true)
+local data, n = LuaSerializer.unserialize(serialized)
+print(unpack(data, 1, n))
 -- prints:
--- 55      test    table: 491A9920 nil     true    function: 4A3893C0
+-- 55      test    table: 491A9920 nil     true
+
+-- Takes in values and returns a string with them serialized
+-- Does not compress the result
+-- LuaSerializer.serialize_nocompress(...)
+
+-- Takes in a string of serialized data and returns a table with the values in it and the amount of values
+-- The data must have been serialized with LuaSerializer.serialize
+-- LuaSerializer.unserialize_nocompress(serializeddata)
+
+local serialized = LuaSerializer.serialize_nocompress(55, "test", {1,2, y = 66}, nil, true)
+local data, n = LuaSerializer.unserialize_nocompress(serialized)
+print(unpack(data, 1, n))
+-- prints:
+-- 55      test    table: 491A9920 nil     true
 ```
 
 #Included dependencies
