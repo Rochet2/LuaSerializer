@@ -7,7 +7,7 @@ Backlink: https://github.com/Rochet2/LuaSerializer
 - Metatables are not serialized.
 - Userdata can not be serialized
 - Functions can not be serialized, but you can try serialize string.dump or the function contents as string
-- Compression safety is questionable for unknown source data, use it only for server->client or otherwise safe operations
+- Compression safety is questionable for unknown source data, use it only for server->client or otherwise safe assumed data
 
 #Serializing
 LuaSerializer serializes data into a string and is able to then deserialize the data without using loadstring or pcall (safely, not calling functions).  
