@@ -1,4 +1,5 @@
 # LuaSerializer
+It is recommended to use smallfolk instead. It is a lot faster and creates smaller and more readable output. It also has a C++ version for C++ compatibility needs: https://github.com/gvx/Smallfolk https://github.com/Rochet2/smallfolk_cpp
 LuaSerializer is a pure lua serializer that does not use loadstring or pcall for table deserialization. Works with Lua 5.1 and 5.2.  
 Backlink: https://github.com/Rochet2/LuaSerializer
 
